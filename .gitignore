@@ -1,0 +1,16 @@
+# Результаты сборки и бинарники
+*.exe
+*.obj
+*.o
+*.out
+*.ilk
+*.pdb
+
+# Директории сборки CMake
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+# Настройки редактора
+.vscode/

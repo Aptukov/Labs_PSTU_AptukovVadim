@@ -1,10 +1,12 @@
 ﻿#include <iostream>
 #include <clocale>
 using namespace std;
+#include <iomanip>
 int main()
 {
+    cout << setprecision(15);
     setlocale(LC_ALL, "Russian");
-    cout << fixed; /*   Числа перестают выводиться в научном формате вида 
+    cout << fixed; /*   Числа перестают выводиться в научном формате вида  13238934y89234 + 67839678367834
                         1.23456e+06 и отображаются в обычном виде (1234560.0) */
     // Вычисления с типом данных float
     float a_f = 1000.0f, b_f = 0.0001f;

@@ -6,38 +6,38 @@
 
 using namespace std;
 
-// Структура "Человек"
+// Структура "Человек" с фиксированными размерами массивов
 struct Person 
 {
-    char fio;     // Фамилия, имя, отчество
-    char address; // Домашний адрес
-    char phone;    // Номер телефона
+    char fio[100];     // Фамилия, имя, отчество
+    char address[100]; // Домашний адрес
+    char phone[30];    // Номер телефона
     int age;           // Возраст
 };
 
-// Функция формирования одной структуры с клавиатуры (с помощью gets_s и >>)
+// Функция ввода данных об одном человеке с клавиатуры
 Person input_person() 
 {
     Person p;
     cout << "  ФИО: ";
-    gets_s(p.fio);
+    cin.getline(p.fio, 100);
     cout << "  Домашний адрес: ";
-    gets_s(p.address);
+    cin.getline(p.address, 100);
     cout << "  Номер телефона: ";
-    gets_s(p.phone);
+    cin.getline(p.phone, 30);
     cout << "  Возраст: ";
     cin >> p.age;
-    cin.ignore(); // Очистка символа '\n' из буфера после операции >>
+    cin.ignore(); // Очищаем буфер от символа перехода на новую строку '\n'
     return p;
 }
 
 // 1. Функция формирования двоичного файла
 void create_file(const char* fname, int count) 
 {
-    FILE* f;
-    if ((f = fopen(fname, "wb")) == NULL) 
+    FILE* f = fopen(fname, "wb");
+    if (f == NULL) 
     {
-        perror("\nОшибка при открытии файла для записи");
+        perror("\nОшибка открытия файла для записи");
         exit(1);
     }
 
@@ -45,32 +45,34 @@ void create_file(const char* fname, int count)
     {
         cout << "\nВведите данные для человека №" << i + 1 << ":\n";
         Person p = input_person();
-        fwrite(&p, sizeof(Person), 1, f);
-        if (ferror(f)) 
+        
+        if (fwrite(&p, sizeof(Person), 1, f) != 1) 
         {
-            perror("\nОшибка при записи данных в файл");
+            perror("\nОшибка записи в файл");
             fclose(f);
             exit(2);
         }
+        fflush(f); // Принудительно записываем данные из буфера на диск
     }
 
     fclose(f);
-    cout << "\nФайл успешно сформирован.\n";
+    cout << "\nФайл " << fname << " успешно сформирован.\n";
 }
 
 // 2. Функция печати содержимого двоичного файла
 void print_file(const char* fname) 
 {
-    FILE* f;
-    if ((f = fopen(fname, "rb")) == NULL) 
+    FILE* f = fopen(fname, "rb");
+    if (f == NULL) 
     {
-        perror("\nОшибка при открытии файла для чтения");
+        perror("\nОшибка открытия файла для чтения");
         exit(3);
     }
 
     Person p;
     int num = 1;
-    cout << "\n--- Содержимое двоичного файла ---\n";
+    cout << "\n--- Содержимое файла " << fname << " ---\n";
+    
     while (fread(&p, sizeof(Person), 1, f) == 1) 
     {
         cout << num << ". ФИО: " << p.fio
@@ -82,7 +84,7 @@ void print_file(const char* fname)
 
     if (ferror(f)) 
     {
-        perror("\nОшибка при чтении данных из файла");
+        perror("\nОшибка при чтении файла");
         fclose(f);
         exit(4);
     }
@@ -91,7 +93,7 @@ void print_file(const char* fname)
     {
         cout << "(Файл пуст)\n";
     }
-    cout << "----------------------------------\n";
+    cout << "--------------------------------------\n";
 
     fclose(f);
 }
@@ -105,18 +107,17 @@ bool is_target_age(const Person& p, int target_age)
 // 4. Функция удаления всех элементов с заданным возрастом через вспомогательный файл
 void delete_by_age(const char* fname, int target_age) 
 {
-    FILE* fin;
-    FILE* fout;
-
-    if ((fin = fopen(fname, "rb")) == NULL) 
+    FILE* fin = fopen(fname, "rb");
+    if (fin == NULL) 
     {
-        perror("\nОшибка открытия исходного файла при удалении");
+        perror("\nОшибка открытия исходного файла");
         exit(5);
     }
 
-    if ((fout = fopen("temp.dat", "wb")) == NULL) 
+    FILE* fout = fopen("temp.dat", "wb");
+    if (fout == NULL) 
     {
-        perror("\nОшибка создания вспомогательного файла");
+        perror("\nОшибка создания временного файла");
         fclose(fin);
         exit(6);
     }
@@ -128,10 +129,9 @@ void delete_by_age(const char* fname, int target_age)
     {
         if (!is_target_age(p, target_age)) 
         {
-            fwrite(&p, sizeof(Person), 1, fout);
-            if (ferror(fout)) 
+            if (fwrite(&p, sizeof(Person), 1, fout) != 1) 
             {
-                perror("\nОшибка записи во вспомогательный файл");
+                perror("\nОшибка записи во временный файл");
                 fclose(fin);
                 fclose(fout);
                 exit(7);
@@ -146,11 +146,9 @@ void delete_by_age(const char* fname, int target_age)
     if (ferror(fin)) 
     {
         perror("\nОшибка чтения исходного файла");
-        fclose(fin);
-        fclose(fout);
-        exit(8);
     }
 
+    fflush(fout);
     fclose(fin);
     fclose(fout);
 
@@ -163,20 +161,19 @@ void delete_by_age(const char* fname, int target_age)
 // 5. Функция добавления элемента после элемента с заданным номером через вспомогательный файл
 void insert_after_num(const char* fname, int target_num, const Person& new_p) 
 {
-    FILE* fin;
-    FILE* fout;
-
-    if ((fin = fopen(fname, "rb")) == NULL) 
+    FILE* fin = fopen(fname, "rb");
+    if (fin == NULL) 
     {
-        perror("\nОшибка открытия исходного файла при добавлении");
-        exit(9);
+        perror("\nОшибка открытия исходного файла");
+        exit(8);
     }
 
-    if ((fout = fopen("temp.dat", "wb")) == NULL) 
+    FILE* fout = fopen("temp.dat", "wb");
+    if (fout == NULL) 
     {
-        perror("\nОшибка создания вспомогательного файла");
+        perror("\nОшибка создания временного файла");
         fclose(fin);
-        exit(10);
+        exit(9);
     }
 
     Person p;
@@ -185,26 +182,24 @@ void insert_after_num(const char* fname, int target_num, const Person& new_p)
 
     while (fread(&p, sizeof(Person), 1, fin) == 1) 
     {
-        // Переписываем текущую запись
-        fwrite(&p, sizeof(Person), 1, fout);
-        if (ferror(fout)) 
+        // Переписываем текущий элемент
+        if (fwrite(&p, sizeof(Person), 1, fout) != 1) 
         {
-            perror("\nОшибка записи во вспомогательный файл");
+            perror("\nОшибка записи во временный файл");
             fclose(fin);
             fclose(fout);
-            exit(11);
+            exit(10);
         }
 
-        // После записи с заданным номером добавляем новую структуру
+        // Сразу после элемента с заданным номером записываем новый
         if (current_num == target_num) 
         {
-            fwrite(&new_p, sizeof(Person), 1, fout);
-            if (ferror(fout)) 
+            if (fwrite(&new_p, sizeof(Person), 1, fout) != 1) 
             {
                 perror("\nОшибка записи нового элемента");
                 fclose(fin);
                 fclose(fout);
-                exit(12);
+                exit(11);
             }
             inserted = true;
         }
@@ -214,11 +209,9 @@ void insert_after_num(const char* fname, int target_num, const Person& new_p)
     if (ferror(fin)) 
     {
         perror("\nОшибка чтения исходного файла");
-        fclose(fin);
-        fclose(fout);
-        exit(13);
     }
 
+    fflush(fout);
     fclose(fin);
     fclose(fout);
 
@@ -249,15 +242,15 @@ int main()
 
     if (n < 5) 
     {
-        cout << "Ошибка: согласно методическим указаниям, количество структур должно быть не менее 5.\n";
+        cout << "Ошибка: по методическим указаниям нужно ввести не менее 5 структур.\n";
     }
     else 
     {
-        // 1. Формирование и печать исходного файла
+        // Шаг 1: Создание файла и печать его содержимого
         create_file(filename, n);
         print_file(filename);
 
-        // 2. Удаление всех элементов с заданным возрастом
+        // Шаг 2: Удаление всех элементов с заданным возрастом
         int del_age;
         cout << "\nВведите возраст для удаления записей: ";
         cin >> del_age;
@@ -266,7 +259,7 @@ int main()
         delete_by_age(filename, del_age);
         print_file(filename);
 
-        // 3. Добавление элемента после элемента с заданным номером
+        // Шаг 3: Добавление нового элемента после элемента с заданным номером
         int pos_num;
         cout << "\nВведите номер элемента, после которого нужно добавить новую запись: ";
         cin >> pos_num;

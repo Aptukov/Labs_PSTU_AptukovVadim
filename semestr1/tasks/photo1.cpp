@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include <string>
+#include <clocale>
 #include <windows.h> // Для корректного ввода русских символов с клавиатуры
 
 using namespace std;

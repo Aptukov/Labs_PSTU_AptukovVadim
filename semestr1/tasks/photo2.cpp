@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include <windows.h>
+#include <clocale>
 
 using namespace std;
 
